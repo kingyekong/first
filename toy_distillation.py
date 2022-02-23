@@ -64,6 +64,6 @@ class StudentModel(nn.Module):
 
         return students
 
-optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9)
+optimizer = optim.SGD(StudentModel.parameters(), lr=LEARNING_RATE, momentum=0.9)
 optimizer.zero_grad()
-loss = F.mse_loss(teacher, students)
+loss = F.mse_loss(teacher, students, 2)
