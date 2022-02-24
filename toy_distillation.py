@@ -43,10 +43,11 @@ class TeacherModel(nn.Module):
         super(TeacherModel,self).__init__()
 
         self.fc = F.Linear(x,w0)
+        self.active = F.relu()
 
     def forward(self, x):
-        x = x.fc(x)
-        teacher = F.relu(x)
+        x = self.fc(x)
+        teacher = self.active(x)
 
         return teacher
 
@@ -56,10 +57,11 @@ class StudentModel(nn.Module):
         super(StudentModel, self).__init__()
 
         self.fc = nn.Linear(d,m)
+        self.active = F.relu()
 
     def forward(self, x):
-        x = x.fc(x)
-        x = F.relu(x)
+        x = self.fc(x)
+        x = self.active(x)
         students = torch.sum(x)
 
         return students
