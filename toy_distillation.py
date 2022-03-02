@@ -17,19 +17,18 @@ from torchvision.transforms.functional import to_pil_image
 import matplotlib.pyplot as plt
 
 
-#Check device
+# Check device
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-#Data setting
-x = torch.randn(9,4)
+# Data setting
 d = x.ndim
-
-#Parameters
-LEARNING_RATE = 0.001
-
-#Data
 m = 2
 w0 = 2
+x = torch.randn(2,400)
+
+# Parameters
+LEARNING_RATE = 0.001
+N_CLASSES = 10
 
 train_dataset = datasets.x(train=True)
 valid_dataset = datasets.x(train=False)
@@ -37,7 +36,7 @@ valid_dataset = datasets.x(train=False)
 train_loader = DataLoader(dataset=train_dataset, shuffle=True)
 valid_loader = DataLoader(dataset=valid_dataset, shuffle=False)
 
-#Teacher model
+# Teacher model
 class TeacherModel(nn.Module):
     def __init__(self):
         super(TeacherModel,self).__init__()
@@ -51,7 +50,7 @@ class TeacherModel(nn.Module):
 
         return teacher
 
-#Students model
+# Students model
 class StudentModel(nn.Module):
     def __init__(self):
         super(StudentModel, self).__init__()
@@ -66,6 +65,35 @@ class StudentModel(nn.Module):
 
         return students
 
-optimizer = optim.SGD(StudentModel.parameters(), lr=LEARNING_RATE, momentum=0.9)
-optimizer.zero_grad()
-loss = F.mse_loss(teacher, students, 2)
+torch.manual_seed(RANDOM_SEED)
+
+model = StudentModel(N_CLASSES).to(DEVICE)
+optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9)
+criterion = F.mse_loss()
+
+# Training
+
+def training_loop(model, criterion, optimizer, train_loader, valid_loader, epochs, device, print_every=1):
+    best_loss = 1e10
+    train_losses = []
+    valid_losses = []
+    
+    for epoch in range(0, epochs):
+        model.train()
+        running_loss = 0
+        
+        for x in train_loader:
+            
+            optimizer.zero_grad()
+            
+            x = x.to(device)
+            teacher = teacher.to(device)
+            students = students.to(device)
+            
+            #Forward Pass
+            loss = criterion(students, teacher)
+            
+            #Backwardpass
+            loss.backward()
+            optimizer.step()
+
