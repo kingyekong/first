@@ -70,7 +70,7 @@ def training_loop(teacher_model, student_model, criterion, optimizer, device, pr
     train_losses = []
     valid_losses = []
     
-    model.train()
+    student_model.train()
     
     for epoch in range(0, epochs):
         running_loss = 0
