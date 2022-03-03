@@ -21,10 +21,10 @@ import matplotlib.pyplot as plt
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # Set Hyperparameters
-batch_size = 
+batch_size = 128
 d = 2
 m = 2
-num = 50000
+N_EPOCHS = 10
 LEARNING_RATE = 0.001
 
 # Teacher model
@@ -64,32 +64,29 @@ student_model = StudentNetwork().to(DEVICE)
 optimizer = optim.SGD(student_model.parameters(), lr=LEARNING_RATE, momentum=0.9)
 criterion = F.mse_loss()
 
-# Training
+# Training Loop
 
-def training_loop(teacher_model, student_model, criterion, optimizer, device, print_every=1):
-    train_losses = []
-    valid_losses = []
+def training_loop(teacher_model, student_model, criterion, optimizer, device, epochs, print_every=1):
     
     student_model.train()
     
     for epoch in range(0, epochs):
-        running_loss = 0
         
-        for i in range(num):
-            
-            optimizer.zero_grad()
-            
-            x = torch.randn(d,batch_size)
-            x = x.to(device) 
-            
-            target = teacher_model(x)
-            output = student_model(x)
-            
-            #Forward Pass
-            loss = criterion(output, target)
-            
-            #Backwardpass
-            loss.backward()
-            optimizer.step()
+        optimizer.zero_grad()
+        
+        X = torch.randn(d,batch_size)
+        X = X.to(device)
+        
+        target = teacher_model(X)
+        output = student_model(X)
+        
+        #Forward Pass
+        loss = criterion(output, target)
+        
+        #Backwardpass
+        loss.backward()
+        optimizer.step()
            
         return model, optimizer, loss
+    
+model, optimizer, loss = training_loop(teacher_model, student_model, criterion, optimizer, device, N_EPOCHS)
