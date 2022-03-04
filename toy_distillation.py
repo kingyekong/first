@@ -29,7 +29,7 @@ LEARNING_RATE = 0.001
 
 # Teacher model
 class TeacherNetwork(nn.Module):
-    def __init__(self, d):
+    def __init__(self):
         super(TeacherNetwork,self).__init__()
 
         self.fc = nn.Linear(d,1)
@@ -43,7 +43,7 @@ class TeacherNetwork(nn.Module):
 
 # Students model
 class StudentNetwork(nn.Module):
-    def __init__(self, d, m):
+    def __init__(self):
         super(StudentNetwork, self).__init__()
 
         self.fc = nn.Linear(d,m)
@@ -62,7 +62,7 @@ teacher_model = TeacherNetwork().to(DEVICE)
 teacher_model.parameters()
 student_model = StudentNetwork().to(DEVICE)
 optimizer = optim.SGD(student_model.parameters(), lr=LEARNING_RATE, momentum=0.9)
-criterion = F.mse_loss()
+criterion = nn.MSELoss()
 
 # Training Loop
 
@@ -87,6 +87,12 @@ def training_loop(teacher_model, student_model, criterion, optimizer, device, ep
         loss.backward()
         optimizer.step()
            
-        return model, optimizer, loss
+        return optimizer, loss
+        
+        if epoch % print_every == (print_every - 1):
+            
+            print(f'Epoch: {epoch}\t'
+                  f'Loss: {loss:.4f}'
+                 )
     
-model, optimizer, loss = training_loop(teacher_model, student_model, criterion, optimizer, device, N_EPOCHS)
+optimizer, loss = training_loop(teacher_model, student_model, criterion, optimizer, device, N_EPOCHS)
