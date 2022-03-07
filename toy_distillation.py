@@ -55,44 +55,72 @@ class StudentNetwork(nn.Module):
         students = torch.sum(x)
 
         return students
+    
+def plot_losses(train_losses):
+    
+    plt.style.use('seaborn')
+    
+    train_losses = np.array(train_losses)
+    
+    fig, ax = plt.subplots(figsize = (8,405))
+    
+    ax.plot(train_losses, color='red', label='Training loss')
+    ax.set(title = "Loss over epochs", xlabel='Epoch', ylabel='Loss')
+    ax.legend()
+    fig.show()
+    
+    plt.style.use('default')
+    
+def train(train_loader, teacher_model, student_model, crieterion, optimizer, device):
+    
+    for X in train_loader:
+        
+        optimizer.zero_grad()
+        
+        X = X.to(device)
+                
+        target = teacher_model(X)
+        output = student_model(X)
+        
+        #Forward pass
+        loss = criterion(output, target)
+        
+        #Backward pass
+        loss.backward()
+        optimizer.step()
+     
+    return student_model, teacher_model, optimizer, epoch_loss
 
+# Training Loop
+
+def training_loop(teacher_model, student_model, criterion, optimizer, device, epochs, print_every=1):
+    
+    train_losses = []
+    student_model.train()
+    
+    for epoch in range(0, epochs):
+        
+        #training
+        optimizer, train_loss = train(train_loader, teacher_model, student_model, criterion, optimizer, device)
+        train_losses.append(train_loss)
+        
+        if epoch % print_every == (print_every - 1):
+            
+            print(f'Epoch: {epoch}\t'
+                  f'Loss: {train_loss:.4f}'
+                 )
+ plot_losses(train_losses)
+
+return student_model, teacher_model, optimizer, train_losses
+
+train_loader = torch.randn(d,batch_size)
+            
 torch.manual_seed(RANDOM_SEED)
 
 teacher_model = TeacherNetwork().to(DEVICE)
 teacher_model.parameters()
 student_model = StudentNetwork().to(DEVICE)
 optimizer = optim.SGD(student_model.parameters(), lr=LEARNING_RATE, momentum=0.9)
-criterion = nn.MSELoss()
-
-# Training Loop
-
-def training_loop(teacher_model, student_model, criterion, optimizer, device, epochs, print_every=1):
-    
-    student_model.train()
-    
-    for epoch in range(0, epochs):
-        
-        optimizer.zero_grad()
-        
-        X = torch.randn(d,batch_size)
-        X = X.to(device)
-        
-        target = teacher_model(X)
-        output = student_model(X)
-        
-        #Forward Pass
-        loss = criterion(output, target)
-        
-        #Backwardpass
-        loss.backward()
-        optimizer.step()
-           
-        return optimizer, loss
-        
-        if epoch % print_every == (print_every - 1):
-            
-            print(f'Epoch: {epoch}\t'
-                  f'Loss: {loss:.4f}'
-                 )
+criterion = nn.MSELoss()            
     
 optimizer, loss = training_loop(teacher_model, student_model, criterion, optimizer, device, N_EPOCHS)
