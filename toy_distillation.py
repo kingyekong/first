@@ -20,29 +20,20 @@ import matplotlib.pyplot as plt
 # Check device
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-# Data setting
-d = x.ndim
+# Set Hyperparameters
+batch_size = 128
+d = 2
 m = 2
-w0 = 2
-x = torch.randn(2,400)
-
-# Parameters
+N_EPOCHS = 10
 LEARNING_RATE = 0.001
-N_CLASSES = 10
-
-train_dataset = datasets.x(train=True)
-valid_dataset = datasets.x(train=False)
-
-train_loader = DataLoader(dataset=train_dataset, shuffle=True)
-valid_loader = DataLoader(dataset=valid_dataset, shuffle=False)
 
 # Teacher model
-class TeacherModel(nn.Module):
+class TeacherNetwork(nn.Module):
     def __init__(self):
-        super(TeacherModel,self).__init__()
+        super(TeacherNetwork,self).__init__()
 
-        self.fc = F.Linear(x,w0)
-        self.active = F.relu()
+        self.fc = nn.Linear(d,1)
+        self.active = nn.ReLU()
 
     def forward(self, x):
         x = self.fc(x)
@@ -51,12 +42,12 @@ class TeacherModel(nn.Module):
         return teacher
 
 # Students model
-class StudentModel(nn.Module):
+class StudentNetwork(nn.Module):
     def __init__(self):
-        super(StudentModel, self).__init__()
+        super(StudentNetwork, self).__init__()
 
         self.fc = nn.Linear(d,m)
-        self.active = F.relu()
+        self.active = nn.ReLU()
 
     def forward(self, x):
         x = self.fc(x)
@@ -64,36 +55,72 @@ class StudentModel(nn.Module):
         students = torch.sum(x)
 
         return students
+    
+def plot_losses(train_losses):
+    
+    plt.style.use('seaborn')
+    
+    train_losses = np.array(train_losses)
+    
+    fig, ax = plt.subplots(figsize = (8,405))
+    
+    ax.plot(train_losses, color='red', label='Training loss')
+    ax.set(title = "Loss over epochs", xlabel='Epoch', ylabel='Loss')
+    ax.legend()
+    fig.show()
+    
+    plt.style.use('default')
+    
+def train(train_loader, teacher_model, student_model, crieterion, optimizer, device):
+    
+    for X in train_loader:
+        
+        optimizer.zero_grad()
+        
+        X = X.to(device)
+                
+        target = teacher_model(X)
+        output = student_model(X)
+        
+        #Forward pass
+        loss = criterion(output, target)
+        
+        #Backward pass
+        loss.backward()
+        optimizer.step()
+     
+    return student_model, teacher_model, optimizer, epoch_loss
 
-torch.manual_seed(RANDOM_SEED)
+# Training Loop
 
-model = StudentModel(N_CLASSES).to(DEVICE)
-optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9)
-criterion = F.mse_loss()
-
-# Training
-
-def training_loop(model, criterion, optimizer, train_loader, valid_loader, epochs, device, print_every=1):
-    best_loss = 1e10
+def training_loop(teacher_model, student_model, criterion, optimizer, device, epochs, print_every=1):
+    
     train_losses = []
-    valid_losses = []
+    student_model.train()
     
     for epoch in range(0, epochs):
-        model.train()
-        running_loss = 0
         
-        for x in train_loader:
+        #training
+        optimizer, train_loss = train(train_loader, teacher_model, student_model, criterion, optimizer, device)
+        train_losses.append(train_loss)
+        
+        if epoch % print_every == (print_every - 1):
             
-            optimizer.zero_grad()
-            
-            x = x.to(device)
-            teacher = teacher.to(device)
-            students = students.to(device)
-            
-            #Forward Pass
-            loss = criterion(students, teacher)
-            
-            #Backwardpass
-            loss.backward()
-            optimizer.step()
+            print(f'Epoch: {epoch}\t'
+                  f'Loss: {train_loss:.4f}'
+                 )
+ plot_losses(train_losses)
 
+return student_model, teacher_model, optimizer, train_losses
+
+train_loader = torch.randn(d,batch_size)
+            
+torch.manual_seed(RANDOM_SEED)
+
+teacher_model = TeacherNetwork().to(DEVICE)
+teacher_model.parameters()
+student_model = StudentNetwork().to(DEVICE)
+optimizer = optim.SGD(student_model.parameters(), lr=LEARNING_RATE, momentum=0.9)
+criterion = nn.MSELoss()            
+    
+optimizer, loss = training_loop(teacher_model, student_model, criterion, optimizer, device, N_EPOCHS)
